@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- RALLY POCKET v1.0 — build jugar-rally-standalone.html -->
+<!-- RALLY POCKET v1.1 — build jugar-rally-standalone.html -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
-<title>Rally Pocket v1.0 — Jugar</title>
+<title>Rally Pocket v1.1 — Jugar</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;900&family=Space+Mono:wght@400;700&display=swap');
 
@@ -210,7 +210,7 @@
 </svg>
       <div class="brand-season">Temporada 2026</div>
       <div class="brand-tagline">rally pocket</div>
-      <div class="brand-version">v1.0</div>
+      <div class="brand-version">v1.1</div>
     </div>
     <div class="phone-content" id="phone"></div>
   </div>
@@ -257,20 +257,19 @@ function escapeHtml(str){ const d=document.createElement('div'); d.textContent=s
 /* ============== DATOS EMBEBIDOS (self-contained, sin import) ============== */
 /* Extraído de rallyargentino.com — tabla de posiciones 2026 por categoría */
 const PILOTOS_DATA = {
-  "RC2": ["Federico Villagra","Miguel Baldoni","Augusto D'Agostini","Augusto Bestard","Diego Miceli","Gastón Pasten","Rodrigo Disalvo","Hernán Echeverría","Valentín Folledo","Mario Llinas","Agustín Mondani","Walter D'Agostini","Carlos Bello","Meliza Prevedello","Genaro González","Federico Villagra (h)","Sergio Centorame","Antonio Prevedello"],
-  "COPA RC2": ["Diego Miceli","Rodrigo Disalvo","Hernán Echeverría","Walter D'Agostini","Valentín Folledo","Meliza Prevedello","Mario Llinas","Agustín Mondani","Genaro González","Carlos Bello","Federico Villagra (h)","Sergio Centorame","Antonio Prevedello"],
-  "RCMR": ["Nicolás González","Victorio Ballay","Rubén Montoro","Ramiro Kaufmann","Nadia Cutro","Santino Rossi","Gastón González","Miguel Patat","José Iribarren"],
-  "RC3": ["Ignacio Villa","Fernando Daparte","Mario Rasso","Diego Semper","Valentino Cardoso","Germán Galfrascoli","Guillermo Ambrosio","Jorge Villarino","Gianfranco Pichetti","Federico Devoto"],
-  "RC4": ["Juan Saraleguy","Carlos Cataldo","Julián Larrosa","Andrés Paredes"],
-  "RC5": ["Fernando Muller","Gerardo Ontivero","Pablo Alessandrini","Pablo Curletto","José Gómez","Sebastián Landa","Rodolfo Ramos","Roberto Forzani","Horacio Marino","Juan Manuel Varas","Walter Guardia","Emilio Bustos","Sabrina Scicolone","Rodrigo Ferreyra","Cesar Fisogni","Santiago Sabbatini","Juan Borgonovo","Magdalena Manochi"]
+  "RC2": ["Federico Villagra", "Miguel Baldoni", "Augusto D'Agostini", "Augusto Bestard", "Diego Miceli", "Gastón Pasten", "Rodrigo Disalvo", "Valentín Folledo", "Walter D'Agostini", "Meliza Prevedello", "Genaro González"],
+  "COPA RC2": ["Diego Miceli", "Rodrigo Disalvo", "Walter D'Agostini", "Carlos Bello", "Federico Villagra (h)", "Sergio Centorame", "Antonio Prevedello"],
+  "RCMR": ["Nicolás González", "Victorio Ballay", "Rubén Montoro", "Ramiro Kaufmann", "Nadia Cutro", "Gastón González", "José Iribarren"],
+  "RC3": ["Ignacio Villa", "Fernando Daparte", "Mario Rasso", "Diego Semper", "Valentino Cardoso", "Germán Galfrascoli"],
+  "RC4": ["Juan Saraleguy", "Carlos Cataldo", "Julián Larrosa", "Andrés Paredes", "Guillermo Ambrosio", "Sabrina Scicolone"],
+  "RC5": ["Fernando Muller", "Gerardo Ontivero", "Pablo Alessandrini", "Pablo Curletto", "José Gómez", "Roberto Forzani", "Horacio Marino", "Santiago Sabbatini"]
 };
 const NAVEGANTES_DATA = {
-  "RC2": ["Diego Curletto", "Gustavo Franchello", "Juan Pablo Carrera", "Sergio Daparte", "Matías Ramos", "Andrés Pissaco", "José Díaz", "Gustavo Breglia", "Zacarías García", "Diego Cagnotti", "Marcelo Brizio", "Mauricio Obrador", "Leonardo Londero", "Mariano Pissaco"],
-  "COPA RC2": ["Diego Curletto", "Gustavo Franchello", "Juan Pablo Carrera", "Sergio Daparte", "Matías Ramos", "Andrés Pissaco", "José Díaz", "Gustavo Breglia", "Zacarías García", "Diego Cagnotti", "Marcelo Brizio", "Mauricio Obrador", "Leonardo Londero", "Mariano Pissaco"],
-  "RCMR": ["Gerónimo Bordignon", "Ignacio Uez", "Claudio Moreno", "Miguel Recalt", "Martín Baucero", "Rubén García", "Juan Pablo Del Riego", "José Brusco", "Sofía Sabbatini", "Marcos Bazán"],
-  "RC3": ["Gonzalo Díaz", "Emanuel Rozados", "Rodolfo Guevara", "Sebastián Mugni", "Nicolás Sloog", "Pedro Semper", "Francisco Furnari", "Maximiliano Karamatich", "Luis Catalfamo", "Adriano Sanguinetti"],
-  "RC4": ["Damián Cabral", "Luis Gatica", "Gustavo Beccaria", "Gerardo Scicolone", "Franco Amaya", "José Raimondi", "Victor Aguilera", "Matías Cardano", "Vicente Andreatta", "David Gallo"],
-  "RC5": ["Gonzalo Martínez", "Ignacio Casamiquela", "Alejo Balestres", "Ignacio Gomez", "Juan Salgado Nash", "Tomás Radomich", "Maximiliano Vergara", "Pablo Orellana", "Eros Paulovich", "Agustín Catalfamo"]
+  "RC2": ["Diego Curletto", "Gustavo Franchello", "Juan Pablo Carrera", "Sergio Daparte", "Matías Ramos", "Andrés Pissaco", "Gustavo Breglia", "Zacarías García", "Marcelo Brizio", "Mauricio Obrador", "Leonardo Londero", "Mariano Pissaco"],
+  "RCMR": ["Gerónimo Bordignon", "Ignacio Uez", "Claudio Moreno", "Miguel Recalt", "José Brusco"],
+  "RC3": ["Gonzalo Díaz", "Emanuel Rozados", "Rodolfo Guevara", "Sebastián Mugni", "Nicolás Sloog"],
+  "RC4": ["Damián Cabral", "Luis Gatica", "Gustavo Beccaria", "Gerardo Scicolone", "Franco Amaya", "Matías Cardano"],
+  "RC5": ["Gonzalo Martínez", "Ignacio Casamiquela", "Alejo Balestres", "Ignacio Gomez", "Juan Salgado Nash", "Tomás Radomich", "Agustín Catalfamo"]
 };
 
 function buildRoster(){
