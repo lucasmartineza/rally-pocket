@@ -67,7 +67,10 @@
   .status-ok{ color:var(--green); }
   .status-err{ color:var(--red); }
 
-  .sit-card{ background:var(--surface2); border:1px solid var(--line); border-radius:8px; margin-bottom:8px; overflow:hidden; }
+  .sit-card{ background:var(--surface2); border:1px solid var(--line); border-radius:8px; margin-bottom:8px; overflow:hidden; transition:box-shadow .15s, border-color .15s; }
+  .sit-card.editing{ border-color:var(--brand); box-shadow:0 0 0 1px var(--brand), 0 0 12px rgba(79,151,196,.6), 0 0 24px rgba(79,151,196,.3); }
+  .active-toggle{ display:flex; align-items:center; margin-right:10px; flex-shrink:0; }
+  .active-toggle input[type=checkbox]{ width:18px; height:18px; accent-color:var(--green); cursor:pointer; }
   .sit-card-head{ display:flex; align-items:center; justify-content:space-between; padding:11px 13px; cursor:pointer; }
   .sit-card-title{ font-weight:700; font-size:13px; }
   .sit-card-cat{ font-family:'Space Mono',monospace; font-size:9px; color:var(--text-dim); text-transform:uppercase; }
@@ -306,7 +309,10 @@ async function loadPilotos(){
     wrap.innerHTML = sortedDocs.map(doc => {
       const p = doc.data();
       return `
-        <div class="list-row" id="pilrow-${doc.id}">
+        <div class="list-row" id="pilrow-${doc.id}" style="${p.activo===false?'opacity:.45;':''}">
+          <label class="active-toggle" title="Activo / inactivo">
+            <input type="checkbox" ${p.activo===false?'':'checked'} onchange="togglePilotoActivo('${doc.id}', this.checked)">
+          </label>
           <div class="grid2">
             <input value="${escapeAttr(p.name)}" onchange="markDirty('pilrow-${doc.id}')" id="pilname-${doc.id}">
             <input value="${escapeAttr(p.category)}" onchange="markDirty('pilrow-${doc.id}')" id="pilcat-${doc.id}">
@@ -341,6 +347,10 @@ async function savePiloto(id){
     statusEl.className = 'status-msg status-err';
   }
 }
+async function togglePilotoActivo(id, activo){
+  await db.collection('pilotos').doc(id).update({activo});
+  loadPilotos();
+}
 async function deletePiloto(id, name){
   if(!confirm('¿Borrar a ' + name + '?')) return;
   await db.collection('pilotos').doc(id).delete();
@@ -366,7 +376,10 @@ async function loadNavegantes(){
     wrap.innerHTML = sortedDocs.map(doc => {
       const n = doc.data();
       return `
-        <div class="list-row" id="navrow-${doc.id}">
+        <div class="list-row" id="navrow-${doc.id}" style="${n.activo===false?'opacity:.45;':''}">
+          <label class="active-toggle" title="Activo / inactivo">
+            <input type="checkbox" ${n.activo===false?'':'checked'} onchange="toggleNaveganteActivo('${doc.id}', this.checked)">
+          </label>
           <div class="grid2">
             <input value="${escapeAttr(n.name)}" onchange="markDirty('navrow-${doc.id}')" id="navname-${doc.id}">
             <input value="${escapeAttr(n.category)}" onchange="markDirty('navrow-${doc.id}')" id="navcat-${doc.id}">
@@ -397,6 +410,10 @@ async function saveNavegante(id){
     statusEl.textContent = 'Error: ' + e.message;
     statusEl.className = 'status-msg status-err';
   }
+}
+async function toggleNaveganteActivo(id, activo){
+  await db.collection('navegantes').doc(id).update({activo});
+  loadNavegantes();
 }
 async function deleteNavegante(id, name){
   if(!confirm('¿Borrar a ' + name + '?')) return;
@@ -451,8 +468,11 @@ async function loadSituaciones(){
     if(snap.empty){ wrap.innerHTML = '<p class="hint">Todavía no hay situaciones cargadas.</p>'; return; }
     situacionesCache = snap.docs.map(d => ({docId: d.id, ...d.data()}));
     wrap.innerHTML = situacionesCache.map((s, idx) => `
-      <div class="sit-card">
+      <div class="sit-card" id="sitCard-${idx}" style="${s.activo===false?'opacity:.45;':''}">
         <div class="sit-card-head" onclick="toggleSitCard(${idx})">
+          <label class="active-toggle" onclick="event.stopPropagation()" title="Activa / inactiva">
+            <input type="checkbox" ${s.activo===false?'':'checked'} onchange="toggleSituacionActivo(${idx}, this.checked)">
+          </label>
           <div>
             <div class="sit-card-title">${escapeAttr(s.title)}</div>
             <div class="sit-card-cat">${escapeAttr(s.category)} · ${escapeAttr(s.id)}</div>
@@ -523,8 +543,16 @@ async function loadSituaciones(){
 function toggleSitCard(idx){
   const body = document.getElementById('sitBody-'+idx);
   const arrow = document.getElementById('sitArrow-'+idx);
+  const card = document.getElementById('sitCard-'+idx);
   const open = body.classList.toggle('open');
   arrow.textContent = open ? '▴' : '▾';
+  card.classList.toggle('editing', open);
+}
+async function toggleSituacionActivo(idx, activo){
+  const s = situacionesCache[idx];
+  await db.collection('situaciones').doc(s.docId).update({activo});
+  s.activo = activo;
+  document.getElementById('sitCard-'+idx).style.opacity = activo ? '1' : '.45';
 }
 function compressImage(file, maxWidth, quality){
   return new Promise((resolve, reject) => {
