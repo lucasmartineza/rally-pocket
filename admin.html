@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tapir Media — Admin</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  body{ margin:0; background:#131313; color:#eaeaea; font-family:'Space Grotesk',system-ui,sans-serif;
+        min-height:100vh; padding:20px 16px 60px; }
+  .cont{ width:100%; max-width:420px; margin:0 auto; }
+  .logo{ text-align:center; margin-bottom:20px; }
+  .logo img{ height:40px; }
+  label{ font-size:12px; color:#8a8a86; display:block; margin-bottom:6px; }
+  input, textarea{ width:100%; padding:12px; margin-bottom:12px; background:#1c1b1b;
+                    border:0.5px solid #3a3939; border-radius:8px; color:#eaeaea; font-size:15px;
+                    font-family:inherit; box-sizing:border-box; }
+  textarea{ resize:vertical; min-height:70px; }
+  button{ width:100%; padding:14px; background:#00e5ff; color:#062a2e; border:none;
+          border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+  button:disabled{ opacity:.4; cursor:default; }
+  .msg{ font-size:13px; text-align:center; margin-top:10px; min-height:16px; }
+  .ok{ color:#00e5ff; }
+  .err{ color:#e24b4a; }
+  .separador{ border:none; border-top:0.5px solid #3a3939; margin:28px 0; }
+  h2{ font-size:15px; margin:0 0 4px; }
+  .subtexto{ font-size:12px; color:#8a8a86; margin:0 0 14px; }
+  .evento-box{ background:#1c1b1b; border:1px solid #00e5ff; border-radius:8px; padding:14px;
+               margin-bottom:20px; box-shadow:0 0 12px rgba(0,229,255,.2); }
+  .evento-box label{ color:#00e5ff; font-weight:600; margin-bottom:8px; }
+  .evento-box input{ margin-bottom:0; }
+  .btn-notificar{ background:#e2a83a; box-shadow:0 0 14px rgba(226,168,58,.35); font-size:15px; padding:16px; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .spinner{ display:inline-block; width:14px; height:14px; border:2px solid rgba(0,0,0,.25);
+            border-top-color:#062a2e; border-radius:50%; animation:spin .7s linear infinite; }
+  #mapaAdmin{ height:240px; border-radius:8px; margin-bottom:14px; border:0.5px solid #3a3939; }
+  .tipo-toggle{ display:flex; gap:6px; margin-bottom:14px; }
+  .tipo-toggle button{ background:#1c1b1b; border:0.5px solid #3a3939; color:#8a8a86;
+                        display:flex; flex-direction:column; align-items:center; justify-content:center;
+                        gap:4px; padding:10px 4px; font-size:11px; font-weight:500; }
+  .tipo-toggle button.activo{ background:rgba(0,229,255,.12); border-color:#00e5ff; color:#00e5ff; }
+  .tipo-toggle svg{ width:16px; height:16px; }
+  .metodo-punto{ display:flex; gap:8px; margin-bottom:14px; }
+  .metodo-punto button{ background:#1c1b1b; border:0.5px solid #3a3939; color:#eaeaea; font-size:12px; }
+  .punto-estado{ font-size:12px; color:#8a8a86; text-align:center; margin-bottom:14px; }
+  .punto-estado.listo{ color:#00e5ff; }
+  .btn-enviar{ font-size:15px; padding:16px; box-shadow:0 0 14px rgba(0,229,255,.35); }
+  .marca-item{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px;
+               background:#1c1b1b; border:0.5px solid #3a3939; border-radius:8px; padding:10px 12px;
+               margin-bottom:8px; font-size:12px; }
+  .marca-item .info{ line-height:1.5; }
+  .marca-item .tag{ color:#00e5ff; font-weight:600; }
+  .marca-item button{ width:auto; padding:6px 10px; font-size:11px; background:#e24b4a; color:#fff;
+                       flex-shrink:0; }
+  .etiqueta-tramo{ background:rgba(19,19,19,.85); color:#00e5ff; border:0.5px solid rgba(0,229,255,.5);
+                    border-radius:4px; font-size:10px; font-weight:600; padding:2px 6px;
+                    box-shadow:none; }
+  .etiqueta-tramo::before{ display:none; }
+  .marker-icono{ background:#131313; border:2px solid #00e5ff; border-radius:50%;
+                  width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+                  box-shadow:0 0 10px rgba(0,229,255,.5); }
+  .marker-icono svg{ width:16px; height:16px; stroke:#00e5ff; }
+  .marker-icono.ambos svg{ width:13px; height:13px; }
+  .marca-item{ cursor:pointer; }
+  .marca-item .marker-icono{ width:28px; height:28px; flex-shrink:0; }
+  .marca-item .marker-icono svg{ width:14px; height:14px; }
+  .leaflet-popup-content-wrapper{ background:#1c1b1b; color:#eaeaea; border-radius:8px; }
+  .leaflet-popup-tip{ background:#1c1b1b; }
+</style>
+</head>
+<body>
+<div class="cont">
+  <div class="logo"><img src="logo_tapirmedia.svg" alt="Tapir Media"></div>
+
+  <div class="evento-box">
+    <label for="inEvento">Evento en curso</label>
+    <input type="text" id="inEvento" placeholder="Ej: mina clavero">
+  </div>
+
+  <button id="btnNotificarAhora" class="btn-notificar">Notificar material nuevo</button>
+  <p class="subtexto" style="text-align:center;margin-top:6px;">
+    Tocalo apenas termines de subir una tanda de fotos/videos — les llega el mail al toque.
+  </p>
+  <div id="msgNotificar" class="msg"></div>
+
+  <h2>Ubicación del equipo</h2>
+  <p class="subtexto">Marcá dónde vas a estar y qué tipo de contenido vas a generar ahí.</p>
+
+  <div id="mapaAdmin"></div>
+
+  <div class="tipo-toggle">
+    <button type="button" id="btnTipoFoto" class="activo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Foto
+    </button>
+    <button type="button" id="btnTipoVideo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Video
+    </button>
+    <button type="button" id="btnTipoAmbos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Foto y Video
+    </button>
+  </div>
+
+  <div class="metodo-punto">
+    <button type="button" id="btnGPS">Marcar mi posición actual</button>
+    <button type="button" id="btnModoManual">Marcar en el mapa</button>
+  </div>
+  <p class="punto-estado" id="puntoEstado">Todavía no marcaste ningún punto.</p>
+
+  <label for="inDescripcion">Descripción del lugar</label>
+  <textarea id="inDescripcion" placeholder="Ej: en el vado, después del lomo de burro..."></textarea>
+
+  <button id="btnEnviar" class="btn-enviar" disabled>Enviar media point</button>
+  <div id="msgUbicacion" class="msg"></div>
+
+  <p style="font-size:12px;color:#8a8a86;margin:24px 0 8px;">Puntos activos en este evento</p>
+  <div id="listaMarcas"></div>
+
+  <hr class="separador">
+
+  <h2>Recorrido del evento (KMZ)</h2>
+  <p class="subtexto">
+    Solo hace falta una vez por evento — después se carga solo cada vez que
+    escribís este mismo nombre de evento. Subís el .kmz a Drive, copiás el ID
+    de la URL (la parte después de <code>/d/</code>, sin nada más) y lo pegás acá.
+  </p>
+  <input type="text" id="inKmzId" placeholder="ID del archivo .kmz en Drive">
+  <button id="btnGuardarRuta">Guardar recorrido</button>
+  <div id="msgRuta" class="msg"></div>
+
+  <hr class="separador">
+
+  <h2>Mensajes para todos los clientes</h2>
+  <textarea id="inMensaje" placeholder="Escribí el aviso..."></textarea>
+  <button id="btnEnviarAviso">Publicar aviso</button>
+  <div id="msg" class="msg"></div>
+
+  <p style="font-size:12px;color:#8a8a86;margin:24px 0 8px;">Mensajes publicados</p>
+  <div id="listaAvisos"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
+<script>
+var API_URL = 'https://script.google.com/macros/s/AKfycbzzBTWNHpsnJjArpGGW5v4ieMouTwWKVM5V4biTDmxZ_WJUJj4YhGSxSWmUZtP0pPl1/exec';
+// Clave interna: si la cambiaste en Code.gs (ADMIN_KEY), actualizala acá también.
+var ADMIN_KEY = 'tapir2026';
+
+document.getElementById('btnNotificarAhora').addEventListener('click', function () {
+  var btn = this;
+  var msg = document.getElementById('msgNotificar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Revisando y enviando...';
+
+  var url = API_URL + '?action=notificar_ahora&key=' + encodeURIComponent(ADMIN_KEY);
+  fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+    btn.disabled = false;
+    btn.textContent = 'Notificar material nuevo';
+    if (data.status === 'ok') {
+      msg.textContent = data.enviados > 0
+        ? 'Se enviaron ' + data.enviados + (data.enviados === 1 ? ' aviso.' : ' avisos.')
+        : 'Nadie tenía material nuevo para avisar.';
+      msg.className = 'msg ok';
+    } else {
+      msg.textContent = data.error || 'No se pudo revisar.';
+      msg.className = 'msg err';
+    }
+  }).catch(function () {
+    btn.disabled = false;
+    btn.textContent = 'Notificar material nuevo';
+    msg.textContent = 'No pudimos conectar. Probá de nuevo.';
+    msg.className = 'msg err';
+  });
+});
+
+var tipoSeleccionado = 'foto';
+var puntoSeleccionado = null;
+var modoManualActivo = false;
+var marcadorSeleccion = null;
+var capaMarcas = null;
+var capaRuta = null;
+
+document.getElementById('btnTipoFoto').addEventListener('click', function () { elegirTipo('foto', this); });
+document.getElementById('btnTipoVideo').addEventListener('click', function () { elegirTipo('video', this); });
+document.getElementById('btnTipoAmbos').addEventListener('click', function () { elegirTipo('ambos', this); });
+
+function elegirTipo(tipo, btn) {
+  tipoSeleccionado = tipo;
+  document.querySelectorAll('.tipo-toggle button').forEach(function (b) { b.classList.remove('activo'); });
+  btn.classList.add('activo');
+}
+
+// --- Mapa ---
+var mapaAdmin = L.map('mapaAdmin').setView([-32.15, -64.35], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapaAdmin);
+setTimeout(function () { mapaAdmin.invalidateSize(); }, 300);
+
+mapaAdmin.on('click', function (ev) {
+  if (!modoManualActivo) return;
+  marcarPuntoSeleccionado(ev.latlng.lat, ev.latlng.lng);
+});
+
+document.getElementById('btnModoManual').addEventListener('click', function () {
+  modoManualActivo = true;
+  document.getElementById('puntoEstado').textContent = 'Tocá el punto exacto en el mapa.';
+});
+
+document.getElementById('btnGPS').addEventListener('click', function () {
+  var btn = this;
+  if (!navigator.geolocation) {
+    document.getElementById('puntoEstado').textContent = 'Este navegador no soporta GPS.';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Buscando...';
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    btn.disabled = false;
+    btn.textContent = 'Marcar mi posición actual';
+    marcarPuntoSeleccionado(pos.coords.latitude, pos.coords.longitude);
+  }, function () {
+    btn.disabled = false;
+    btn.textContent = 'Marcar mi posición actual';
+    document.getElementById('puntoEstado').textContent = 'No pudimos acceder al GPS.';
+  });
+});
+
+function marcarPuntoSeleccionado(lat, lng) {
+  puntoSeleccionado = { lat: lat, lng: lng };
+  modoManualActivo = false;
+  if (marcadorSeleccion) mapaAdmin.removeLayer(marcadorSeleccion);
+  marcadorSeleccion = L.marker([lat, lng]).addTo(mapaAdmin);
+  mapaAdmin.setView([lat, lng], 15);
+  var estado = document.getElementById('puntoEstado');
+  estado.textContent = 'Punto marcado. Completá la descripción y enviá.';
+  estado.classList.add('listo');
+  document.getElementById('btnEnviar').disabled = false;
+}
+
+document.getElementById('btnEnviar').addEventListener('click', function () {
+  var evento = document.getElementById('inEvento').value.trim();
+  var descripcion = document.getElementById('inDescripcion').value.trim();
+  var msg = document.getElementById('msgUbicacion');
+  var btn = this;
+
+  if (!evento) {
+    msg.textContent = 'Completá el evento arriba de todo.';
+    msg.className = 'msg err';
+    return;
+  }
+  if (!puntoSeleccionado) {
+    msg.textContent = 'Marcá un punto primero.';
+    msg.className = 'msg err';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  var url = API_URL + '?action=nueva_ubicacion&key=' + encodeURIComponent(ADMIN_KEY) +
+            '&lat=' + puntoSeleccionado.lat + '&lng=' + puntoSeleccionado.lng +
+            '&tipo=' + tipoSeleccionado + '&evento=' + encodeURIComponent(evento) +
+            '&descripcion=' + encodeURIComponent(descripcion);
+
+  fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+    btn.disabled = false;
+    btn.textContent = 'Enviar media point';
+    if (data.status === 'ok') {
+      msg.textContent = 'Enviado. Ya lo ven tus clientes.';
+      msg.className = 'msg ok';
+      puntoSeleccionado = null;
+      if (marcadorSeleccion) { mapaAdmin.removeLayer(marcadorSeleccion); marcadorSeleccion = null; }
+      document.getElementById('inDescripcion').value = '';
+      document.getElementById('btnEnviar').disabled = true;
+      var estado = document.getElementById('puntoEstado');
+      estado.textContent = 'Todavía no marcaste ningún punto.';
+      estado.classList.remove('listo');
+      cargarMarcas();
+    } else {
+      msg.textContent = data.error || 'No se pudo enviar.';
+      msg.className = 'msg err';
+    }
+  });
+});
+
+// --- Listado + borrado de marcas ---
+var ICONO_CAMARA_FOTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+var ICONO_CAMARA_VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>';
+function iconoParaTipo(tipo) {
+  if (tipo === 'video') return ICONO_CAMARA_VIDEO;
+  if (tipo === 'ambos') return ICONO_CAMARA_FOTO + ICONO_CAMARA_VIDEO;
+  return ICONO_CAMARA_FOTO;
+}
+function etiquetaParaTipo(tipo) {
+  if (tipo === 'video') return 'Video';
+  if (tipo === 'ambos') return 'Foto y Video';
+  return 'Foto';
+}
+
+function cargarMarcas() {
+  var evento = document.getElementById('inEvento').value.trim();
+  if (capaMarcas) { mapaAdmin.removeLayer(capaMarcas); capaMarcas = null; }
+  if (!evento) { document.getElementById('listaMarcas').innerHTML = ''; return; }
+
+  var url = API_URL + '?action=ubicaciones&evento=' + encodeURIComponent(evento);
+  fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+    var cont = document.getElementById('listaMarcas');
+    cont.innerHTML = '';
+    if (data.status !== 'ok' || data.ubicaciones.length === 0) {
+      cont.innerHTML = '<p style="color:#8a8a86;font-size:12px;">Sin puntos activos para este evento.</p>';
+      return;
+    }
+    var marcadores = [];
+    var marcadoresPorId = {};
+    data.ubicaciones.forEach(function (u) {
+      var etiqueta = etiquetaParaTipo(u.tipo);
+
+      var icono = L.divIcon({
+        className: '',
+        html: '<div class="marker-icono' + (u.tipo === 'ambos' ? ' ambos' : '') + '">' + iconoParaTipo(u.tipo) + '</div>',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+      var marker = L.marker([u.lat, u.lng], { icon: icono });
+      marker.bindPopup(etiqueta + (u.descripcion ? ' — ' + u.descripcion : '') + '<br><small>' + u.fecha + '</small>');
+      marcadores.push(marker);
+      marcadoresPorId[u.id] = marker;
+
+      var div = document.createElement('div');
+      div.className = 'marca-item';
+
+      var iconoDiv = document.createElement('div');
+      iconoDiv.className = 'marker-icono' + (u.tipo === 'ambos' ? ' ambos' : '');
+      iconoDiv.innerHTML = iconoParaTipo(u.tipo);
+      div.appendChild(iconoDiv);
+
+      var info = document.createElement('div');
+      info.className = 'info';
+      info.style.flex = '1';
+      info.innerHTML = '<span class="tag">' + etiqueta + '</span> · ' + u.fecha +
+                        (u.descripcion ? '<br>' + u.descripcion : '');
+      div.appendChild(info);
+
+      var btn = document.createElement('button');
+      btn.textContent = 'Quitar';
+      btn.addEventListener('click', function (ev) { ev.stopPropagation(); quitarMarca(u.id); });
+      div.appendChild(btn);
+
+      div.addEventListener('click', function () {
+        mapaAdmin.setView([u.lat, u.lng], 16, { animate: true });
+        setTimeout(function () { marker.openPopup(); }, 400);
+      });
+
+      cont.appendChild(div);
+    });
+    if (marcadores.length) capaMarcas = L.layerGroup(marcadores).addTo(mapaAdmin);
+  });
+}
+
+function quitarMarca(id) {
+  var url = API_URL + '?action=quitar_ubicacion&key=' + encodeURIComponent(ADMIN_KEY) + '&id=' + id;
+  fetch(url).then(function (r) { return r.json(); }).then(function () { cargarMarcas(); });
+}
+
+// --- Evento: dispara todo automáticamente ---
+document.getElementById('inEvento').addEventListener('change', cargarEvento);
+document.getElementById('inEvento').addEventListener('keydown', function (ev) {
+  if (ev.key === 'Enter') { ev.preventDefault(); cargarEvento(); }
+});
+
+function cargarEvento() {
+  cargarMarcas();
+  cargarRutaEnMapa();
+}
+
+// --- Recorrido KMZ ---
+document.getElementById('btnGuardarRuta').addEventListener('click', function () {
+  var evento = document.getElementById('inEvento').value.trim();
+  var kmzId = document.getElementById('inKmzId').value.trim();
+  var msg = document.getElementById('msgRuta');
+
+  if (!evento || !kmzId) {
+    msg.textContent = 'Completá el evento (arriba) y el ID del archivo.';
+    msg.className = 'msg err';
+    return;
+  }
+
+  var url = API_URL + '?action=guardar_ruta&key=' + encodeURIComponent(ADMIN_KEY) +
+            '&evento=' + encodeURIComponent(evento) + '&kmz_file_id=' + encodeURIComponent(kmzId);
+
+  fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+    if (data.status === 'ok') {
+      msg.textContent = 'Recorrido guardado.';
+      msg.className = 'msg ok';
+      cargarRutaEnMapa();
+    } else {
+      msg.textContent = data.error || 'No se pudo guardar.';
+      msg.className = 'msg err';
+    }
+  });
+});
+
+function cargarRutaEnMapa() {
+  var evento = document.getElementById('inEvento').value.trim();
+  if (!evento) return;
+  var url = API_URL + '?action=ruta&evento=' + encodeURIComponent(evento);
+  fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+    if (capaRuta) { mapaAdmin.removeLayer(capaRuta); capaRuta = null; }
+    if (data.status !== 'ok' || !data.kml) return;
+    var xml = new DOMParser().parseFromString(data.kml, 'text/xml');
+    var geojson = toGeoJSON.kml(xml);
+    var soloLineas = { filter: function (f) { return f.geometry && f.geometry.type.indexOf('LineString') > -1; } };
+    var glow = L.geoJSON(geojson, Object.assign({ style: { color: '#00e5ff', weight: 11, opacity: .25 } }, soloLineas)).addTo(mapaAdmin);
+    var linea = L.geoJSON(geojson, Object.assign({
+      style: { color: '#00e5ff', weight: 4, opacity: 1 },
+      onEachFeature: function (feature, layer) {
+        if (feature.properties && feature.properties.name) {
+          layer.bindTooltip(feature.properties.name, {
+            permanent: true, direction: 'center', className: 'etiqueta-tramo'
+          });
+        }
+      }
+    }, soloLineas)).addTo(mapaAdmin);
+    capaRuta = L.layerGroup([glow, linea]).addTo(mapaAdmin);
+    setTimeout(function () {
+      mapaAdmin.invalidateSize();
+      mapaAdmin.fitBounds(linea.getBounds(), { padding: [20, 20] });
+    }, 250);
+  });
+}
+
+// --- Mensajes ---
+document.getElementById('btnEnviarAviso').addEventListener('click', function () {
+  var mensaje = document.getElementById('inMensaje').value.trim();
+  var msg = document.getElementById('msg');
+  var btn = this;
+
+  if (!mensaje) {
+    msg.textContent = 'Escribí un mensaje.';
+    msg.className = 'msg err';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Publicando...';
+
+  var url = API_URL + '?action=nuevo_aviso&key=' + encodeURIComponent(ADMIN_KEY) +
+            '&mensaje=' + encodeURIComponent(mensaje);
+
+  fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+    btn.disabled = false;
+    btn.textContent = 'Publicar aviso';
+    if (data.status === 'ok') {
+      msg.textContent = 'Aviso publicado.';
+      msg.className = 'msg ok';
+      document.getElementById('inMensaje').value = '';
+      cargarAvisosAdmin();
+    } else {
+      msg.textContent = data.error || 'No se pudo publicar.';
+      msg.className = 'msg err';
+    }
+  }).catch(function () {
+    btn.disabled = false;
+    btn.textContent = 'Publicar aviso';
+    msg.textContent = 'No pudimos conectar. Probá de nuevo.';
+    msg.className = 'msg err';
+  });
+});
+
+function cargarAvisosAdmin() {
+  var url = API_URL + '?action=avisos';
+  fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+    var cont = document.getElementById('listaAvisos');
+    cont.innerHTML = '';
+    if (data.status !== 'ok' || data.avisos.length === 0) {
+      cont.innerHTML = '<p style="color:#8a8a86;font-size:12px;">Sin mensajes publicados.</p>';
+      return;
+    }
+    data.avisos.slice().reverse().forEach(function (a) {
+      var div = document.createElement('div');
+      div.className = 'marca-item';
+      var info = document.createElement('div');
+      info.className = 'info';
+      info.textContent = a.mensaje + (a.fecha ? ' · ' + a.fecha : '');
+      div.appendChild(info);
+      var btnDel = document.createElement('button');
+      btnDel.textContent = 'Eliminar';
+      btnDel.addEventListener('click', function () { eliminarAviso(a.fila); });
+      div.appendChild(btnDel);
+      cont.appendChild(div);
+    });
+  });
+}
+
+function eliminarAviso(fila) {
+  var url = API_URL + '?action=eliminar_aviso&key=' + encodeURIComponent(ADMIN_KEY) + '&fila=' + fila;
+  fetch(url).then(function (r) { return r.json(); }).then(function () { cargarAvisosAdmin(); });
+}
+
+cargarAvisosAdmin();
+</script>
+</body>
+</html>
