@@ -130,6 +130,7 @@
       <button class="tab-btn" data-tab="navegantes" onclick="showTab('navegantes')">🗺️ Navegantes</button>
       <button class="tab-btn" data-tab="situaciones" onclick="showTab('situaciones')">📋 Situaciones</button>
       <button class="tab-btn" data-tab="ranking" onclick="showTab('ranking')">🏆 Ranking</button>
+      <button class="tab-btn" data-tab="sponsors" onclick="showTab('sponsors')">📣 Sponsors</button>
     </div>
 
     <div class="tab-panel active" id="tab-pilotos">
@@ -195,6 +196,16 @@
       <div id="rankingTableWrap"></div>
     </div>
 
+    <div class="tab-panel" id="tab-sponsors">
+      <div class="panel-card">
+        <h2>Sponsors del zócalo</h2>
+        <p class="hint">Los banners activos que cargues acá rotan solos en el juego, cada 3 segundos. Si hay uno solo, queda fijo. Si hay varios, rotan entre todos ellos automáticamente — no hace falta tocar nada más.</p>
+        <button class="btn-outline btn-sm" onclick="addSponsor()">+ Agregar sponsor</button>
+        <div id="sponsorsStatus" class="status-msg"></div>
+      </div>
+      <div id="sponsorsList"></div>
+    </div>
+
   </div>
 </div>
 
@@ -245,6 +256,7 @@ function initApp(){
   loadSituaciones();
   loadRankingWindow();
   loadRanking();
+  loadSponsors();
 }
 
 /* ============== MIGRACIÓN INICIAL ============== */
@@ -772,6 +784,87 @@ function exportRankingCSV(){
   const blob = new Blob([header+rows], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob); const a = document.createElement('a');
   a.href = url; a.download = 'ranking-rally-pocket.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+/* ============== SPONSORS ============== */
+let sponsorsCache = [];
+async function loadSponsors(){
+  const wrap = document.getElementById('sponsorsList');
+  wrap.innerHTML = '<p class="hint">Cargando...</p>';
+  try {
+    const snap = await db.collection('sponsors').get();
+    sponsorsCache = snap.docs.map(d => ({docId: d.id, ...d.data()})).sort((a,b) => (a.orden||0)-(b.orden||0));
+    if(!sponsorsCache.length){ wrap.innerHTML = '<p class="hint">Todavía no hay sponsors cargados.</p>'; return; }
+    wrap.innerHTML = sponsorsCache.map((s, idx) => `
+      <div class="list-row" id="sponrow-${idx}" style="align-items:flex-start; ${s.activo===false?'opacity:.45;':''}">
+        <label class="active-toggle" title="Activo / inactivo">
+          <input type="checkbox" ${s.activo===false?'':'checked'} onchange="toggleSponsorActivo(${idx}, this.checked)">
+        </label>
+        <div style="flex:1;">
+          <img id="sponPreview-${idx}" src="${s.imagen||''}" style="width:100%; max-height:70px; object-fit:contain; background:#fff; border:1px solid var(--line); border-radius:6px; margin-bottom:6px; ${s.imagen?'':'display:none;'}">
+          <input value="${escapeAttr(s.name||'')}" placeholder="Nombre del sponsor" id="sponName-${idx}" style="margin-bottom:6px;">
+          <input type="file" accept="image/*" onchange="handleSponsorImageSelect(${idx}, event)">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:5px;">
+          <button class="btn-outline btn-sm" onclick="saveSponsor(${idx})">Guardar</button>
+          <button class="btn-danger btn-sm" onclick="deleteSponsor(${idx})">✕</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e){
+    wrap.innerHTML = '<p class="hint" style="color:var(--red);">Error al cargar: ' + e.message + '</p>';
+  }
+}
+async function handleSponsorImageSelect(idx, event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('sponsorsStatus');
+  statusEl.textContent = 'Procesando imagen...';
+  statusEl.className = 'status-msg';
+  try {
+    const dataUri = await compressImage(file, 700, 0.8);
+    sponsorsCache[idx]._pendingImagen = dataUri;
+    const preview = document.getElementById('sponPreview-'+idx);
+    preview.src = dataUri;
+    preview.style.display = 'block';
+    statusEl.textContent = '📷 Imagen lista — tocá "Guardar" para confirmar.';
+    statusEl.className = 'status-msg status-ok';
+  } catch(e){
+    statusEl.textContent = 'Error al procesar la imagen: ' + e.message;
+    statusEl.className = 'status-msg status-err';
+  }
+}
+async function saveSponsor(idx){
+  const s = sponsorsCache[idx];
+  const statusEl = document.getElementById('sponsorsStatus');
+  try {
+    s.name = document.getElementById('sponName-'+idx).value.trim();
+    if(s._pendingImagen){ s.imagen = s._pendingImagen; delete s._pendingImagen; }
+    const {docId, ...toSave} = s;
+    await db.collection('sponsors').doc(docId).set(toSave);
+    statusEl.textContent = '✅ Guardado: ' + (s.name || 'sponsor');
+    statusEl.className = 'status-msg status-ok';
+  } catch(e){
+    statusEl.textContent = 'Error: ' + e.message;
+    statusEl.className = 'status-msg status-err';
+  }
+}
+async function toggleSponsorActivo(idx, activo){
+  const s = sponsorsCache[idx];
+  await db.collection('sponsors').doc(s.docId).update({activo});
+  s.activo = activo;
+  document.getElementById('sponrow-'+idx).style.opacity = activo ? '1' : '.45';
+}
+async function deleteSponsor(idx){
+  const s = sponsorsCache[idx];
+  if(!confirm('¿Borrar el sponsor "' + (s.name||'sin nombre') + '"?')) return;
+  await db.collection('sponsors').doc(s.docId).delete();
+  loadSponsors();
+}
+async function addSponsor(){
+  const id = 'sponsor_' + Date.now();
+  await db.collection('sponsors').doc(id).set({name:'Nuevo sponsor', imagen:'', activo:true, orden: sponsorsCache.length});
+  loadSponsors();
 }
 </script>
 
